@@ -73,7 +73,7 @@ const _extractCountByAcct = (queryResult) => {
     return results
 }
 // parsedQueryRes has this format
-// [{accountId: 95174, counts: {cloud: 40, onPrem: 17, total: 57}}, {accountId: 2048290, counts: {cloud: 36, onPrem: 4, total: 40}}, etc...]
+// [{accountId: xxxx, counts: {cloud: 40, onPrem: 17, total: 57}}, {accountId: yyyy, counts: {cloud: 36, onPrem: 4, total: 40}}, etc...]
 const _mergeResultWithConfig = (parsedQueryRes) => {
     const accountsIds = parsedQueryRes.map(res => res.accountId)
     const updatedConfig = infraConfig.map(group => {        // For each group we update the accounts by adding the count of instrumented host onprem/cloud
