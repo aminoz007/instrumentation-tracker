@@ -8,11 +8,31 @@ export default class InstrumentationTracker extends React.Component {
     constructor(props) {
         super(props)
         this.state = {
-            infraConfig: []
+            infraConfig: [],
+            displayGroups: []
         }
     }
     componentDidMount() {
-        getHostCount().then(infraConfig => this.setState({infraConfig}))
+        getHostCount().then(infraConfig => {
+            const displayGroups = Array(infraConfig.length).fill(false)
+            this.setState({infraConfig, displayGroups}, () => {
+                this.timerID = setInterval(
+                    () => getHostCount().then(infraConfig => {
+                              const displayGroups = this.state.displayGroups
+                              this.setState({infraConfig, displayGroups})
+                          }),
+                    300000 // refresh every 5 min
+                );
+            })
+        })
+    }
+    componentWillUnmount() {
+        clearInterval(this.timerID);
+    }      
+    rowClicked(index) {
+        const newDisplay = this.state.displayGroups.slice()
+        newDisplay[index]= !newDisplay[index]
+        this.setState({displayGroups:newDisplay})
     }
     countDetails(data, count, instrCount, progressColor) {
         return (
@@ -43,8 +63,10 @@ export default class InstrumentationTracker extends React.Component {
                         <Table.HeaderCell textAlign='center' colSpan='3'style={{background:'aqua'}}>Infra (Cloud)</Table.HeaderCell>
                     </Table.Row>
                     <Table.Row>
-                        <Table.HeaderCell>Group</Table.HeaderCell>
-                        <Table.HeaderCell>Account ID</Table.HeaderCell>
+                        {this.state.displayGroups.indexOf(true) > -1 ? 
+                        (<><Table.HeaderCell>Group</Table.HeaderCell>
+                         <Table.HeaderCell>Account ID</Table.HeaderCell></>)
+                        :<Table.HeaderCell colSpan='2'>Group</Table.HeaderCell>}
                         <Table.HeaderCell>Current Host Count</Table.HeaderCell>
                         <Table.HeaderCell>Instrumented</Table.HeaderCell>
                         <Table.HeaderCell>% Instrumented</Table.HeaderCell>
@@ -58,14 +80,14 @@ export default class InstrumentationTracker extends React.Component {
                         {data.map((groupData,index) => { 
                             return (
                                 <React.Fragment>
-                                    <Table.Row key={index}>
-                                    <Table.Cell style={{fontWeight:'bold', fontStyle:'italic'}} colSpan='2'>{groupData.group}</Table.Cell>
+                                    <Table.Row key={index} onClick={() => this.rowClicked(index)}>
+                                    <Table.Cell  style={{fontWeight:'bold', fontStyle:'italic'}} colSpan='2'>{groupData.group}</Table.Cell>
                                     {this.countDetails(groupData, "onPremHostCount", "instrOnPremHostCount", "blue")}
                                     {this.countDetails(groupData, "cloudHostCount", "instrCloudHostCount", "blue")}
                                     </Table.Row>
-                                    {groupData.accounts.map((account,index) => {
+                                    {this.state.displayGroups[index] && groupData.accounts.map((account,i) => {
                                         return (
-                                            <Table.Row key={index}>
+                                            <Table.Row key={i}>
                                                 <Table.Cell textAlign='right'>{account.accountName}</Table.Cell>
                                                 <Table.Cell textAlign='right'>{account.accountId}</Table.Cell>
                                                 {this.countDetails(account, "onPremHostCount", "instrOnPremHostCount", "orange")}
